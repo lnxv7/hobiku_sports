@@ -3,7 +3,11 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { products, formatPrice } from "./lib/products";
+import {
+  type Product,
+  normalizeDatabaseProduct,
+  formatPrice,
+} from "./lib/products";
 import { addProductToCart } from "./lib/cart";
 import Link from "next/link";
 
@@ -34,10 +38,51 @@ const categories = [
 
 export default function Home() {
   const [search, setSearch] = useState("");
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loadingProducts, setLoadingProducts] = useState(true);
+  const [productsError, setProductsError] = useState("");
   const [category, setCategory] = useState("Semua");
   const [cart, setCart] = useState(0);
   const [message, setMessage] = useState("");
   const router = useRouter();
+
+  useEffect(() => {
+  let cancelled = false;
+
+  async function loadProducts() {
+    try {
+      const response = await fetch("/api/products");
+
+      if (!response.ok) {
+        throw new Error("Produk gagal dimuat.");
+      }
+
+      const data = (await response.json()) as {
+        products: import("./lib/products").DatabaseProduct[];
+      };
+
+      if (!cancelled) {
+        setProducts(data.products.map(normalizeDatabaseProduct));
+        setProductsError("");
+      }
+    } catch {
+      if (!cancelled) {
+        setProductsError("Produk belum berhasil dimuat. Silakan coba lagi.");
+      }
+    } finally {
+      if (!cancelled) {
+        setLoadingProducts(false);
+      }
+    }
+  }
+
+  loadProducts();
+
+  return () => {
+    cancelled = true;
+  };
+
+}, []);
 
   useEffect(() => {
     const savedCart = Number(
@@ -51,13 +96,14 @@ export default function Home() {
       const matchCategory =
         category === "Semua" || product.category === category;
 
+      const searchTerm = search.toLowerCase();
       const matchSearch =
-        product.name.toLowerCase().includes(search.toLowerCase()) ||
-        product.category.toLowerCase().includes(search.toLowerCase());
+        product.name.toLowerCase().includes(searchTerm) ||
+        product.category.toLowerCase().includes(searchTerm);
 
       return matchCategory && matchSearch;
     });
-  }, [search, category]);
+  }, [products, search, category]);
 
   function showMessage(text: string) {
     setMessage(text);
@@ -65,10 +111,7 @@ export default function Home() {
   }
 
   function addToCart(name: string) {
-    const product = products.find(
-      (item) => item.name === name
-    );
-
+    const product = products.find((item) => item.name === name);
     if (!product) return;
 
     const items = addProductToCart(product);
@@ -311,6 +354,29 @@ export default function Home() {
             </span>
           </div>
 
+{loadingProducts && (
+  <p className="mt-6 py-10 text-center text-sm text-slate-500">
+    Memuat produk...
+  </p>
+)}
+
+{!loadingProducts && productsError && (
+  <div className="mt-6 rounded-2xl border border-red-200 bg-red-50 px-4 py-8 text-center">
+    <p className="font-semibold text-red-800">
+      Produk belum bisa ditampilkan
+    </p>
+    <p className="mt-2 text-sm text-red-700">
+      {productsError}
+    </p>
+    <button
+      type="button"
+      onClick={() => window.location.reload()}
+      className="mt-4 rounded-xl bg-[#172b4d] px-4 py-2.5 text-sm font-semibold text-white"
+    >
+      Coba lagi
+    </button>
+  </div>
+)}
           <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-5 lg:grid-cols-4 xl:grid-cols-4">
             
 {filteredProducts.map((product) => (
@@ -368,7 +434,9 @@ export default function Home() {
 ))}
           </div>
 
-          {filteredProducts.length === 0 && (
+          {!loadingProducts &&
+  !productsError &&
+  filteredProducts.length === 0 && (
             <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-14 text-center">
               <p className="text-3xl" aria-hidden="true">
                 ⌕

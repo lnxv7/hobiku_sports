@@ -10,6 +10,25 @@ export type Product = {
   specifications: string[];
 };
 
+export type DatabaseProduct = {
+  id: number;
+  sku: string | null;
+  name: string;
+  slug: string | null;
+  category: string;
+  price: number;
+  stock: number;
+  description: string;
+  specifications: string[] | string;
+  image_url: string | null;
+  weight_grams: number;
+  package_length_cm: number;
+  package_width_cm: number;
+  package_height_cm: number;
+  tag: string;
+  is_active: number;
+};
+
 export const products: Product[] = [
   {
     id: 1,
@@ -147,4 +166,67 @@ export function formatPrice(price: number): string {
     currency: "IDR",
     maximumFractionDigits: 0,
   }).format(price);
+}
+
+
+export function normalizeDatabaseProduct(
+  item: DatabaseProduct
+): Product {
+  const fallbackStyles: Record<
+    string,
+    { icon: string; background: string }
+  > = {
+    "Shoes & Footwear": {
+      icon: "👟",
+      background: "bg-sky-50",
+    },
+    "Fashion & Accessories": {
+      icon: "👕",
+      background: "bg-orange-50",
+    },
+    "Fitness & Gym": {
+      icon: "🏋️",
+      background: "bg-slate-100",
+    },
+    "Sports & Outdoors": {
+      icon: "🎒",
+      background: "bg-amber-50",
+    },
+    "Home Appliances": {
+      icon: "⌂",
+      background: "bg-stone-100",
+    },
+  };
+
+  const style = fallbackStyles[item.category] ?? {
+    icon: "✦",
+    background: "bg-gray-100",
+  };
+
+  let specifications: string[] = [];
+
+  try {
+    specifications =
+      typeof item.specifications === "string"
+        ? JSON.parse(item.specifications)
+        : item.specifications;
+  } catch {
+    specifications = [];
+  }
+
+  return {
+    id: item.id,
+    name: item.name,
+    category: item.category,
+    price: item.price,
+    icon: style.icon,
+    tag: item.tag ?? "",
+    background: style.background,
+    description: item.description ?? "",
+    specifications: Array.isArray(specifications)
+      ? specifications.filter(
+          (value): value is string => typeof value === "string"
+        )
+      : [],
+  };
 }

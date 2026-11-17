@@ -1,16 +1,87 @@
+
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { products, formatPrice } from "../../lib/products";
+import {
+  type Product,
+  normalizeDatabaseProduct,
+  formatPrice,
+} from "../../lib/products";
 import { addProductToCart } from "../../lib/cart";
+
 
 export default function ProductDetail({ id }: { id: string }) {
   const router = useRouter();
   const [quantity, setQuantity] = useState(1);
-  const [message, setMessage] = useState("");
+  
+const [message, setMessage] = useState("");
+const [product, setProduct] = useState<Product | null>(null);
+const [loading, setLoading] = useState(true);
+const [loadError, setLoadError] = useState("");
 
-  const product = products.find((item) => item.id === Number(id));
+useEffect(() => {
+  let cancelled = false;
+
+  async function loadProduct() {
+    try {
+      const response = await fetch("/api/products");
+
+      if (!response.ok) {
+        throw new Error("Produk gagal dimuat.");
+      }
+
+      const data = (await response.json()) as {
+        products: import("../../lib/products").DatabaseProduct[];
+      };
+
+      const found = data.products.find(
+        (item) => item.id === Number(id)
+      );
+
+      if (!cancelled) {
+        setProduct(found ? normalizeDatabaseProduct(found) : null);
+        setLoadError("");
+      }
+    } catch {
+      if (!cancelled) {
+        setLoadError("Produk gagal dimuat. Silakan coba lagi.");
+      }
+    } finally {
+      if (!cancelled) {
+        setLoading(false);
+      }
+    }
+  }
+
+  loadProduct();
+
+  return () => {
+    cancelled = true;
+  };
+}, [id]);
+
+if (loading) {
+  return (
+    <main className="min-h-screen p-8 text-center">
+      <p>Memuat detail produk...</p>
+    </main>
+  );
+}
+
+if (loadError) {
+  return (
+    <main className="min-h-screen p-8 text-center">
+      <p>{loadError}</p>
+      <button
+        onClick={() => window.location.reload()}
+        className="mt-4 rounded-lg bg-black px-5 py-3 text-white"
+      >
+        Coba lagi
+      </button>
+    </main>
+  );
+}
 
   if (!product) {
     return (

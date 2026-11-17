@@ -17,6 +17,13 @@ export default defineConfig({
       VINEXT_KV_CACHE: bindings.kv({
         id: "420ea29afc22477db401af73ec0d4255",
       }),
+      DB: bindings.d1({
+  name: "hobiku-sports-db",
+  id: "7f9660cc-d93a-4591-b934-8e55d8c62e47",
+  dev: {
+    remote: true,
+  },
+}),
     },
   }),
 });

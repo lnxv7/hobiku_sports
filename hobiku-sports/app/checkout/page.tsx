@@ -15,6 +15,7 @@ export default function CheckoutPage() {
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
   const [shipping, setShipping] = useState("delivery");
+  const [courier, setCourier] = useState("");
   const [payment, setPayment] = useState("transfer");
   const [notes, setNotes] = useState("");
   const [error, setError] = useState("");
@@ -49,9 +50,14 @@ export default function CheckoutPage() {
     }
 
     if (shipping === "delivery" && !address.trim()) {
-      setError("Masukkan alamat pengiriman terlebih dahulu.");
-      return;
-    }
+  setError("Masukkan alamat pengiriman terlebih dahulu.");
+  return;
+}
+
+if (shipping === "delivery" && !courier) {
+  setError("Pilih ekspedisi pengiriman terlebih dahulu.");
+  return;
+}
 
     const orderItems = items
       .map(
@@ -74,8 +80,11 @@ export default function CheckoutPage() {
           : "Ambil langsung"
       }`,
       ...(shipping === "delivery"
-        ? [`Alamat: ${address.trim()}`]
-        : []),
+  ? [
+      `Alamat: ${address.trim()}`,
+      `Ekspedisi pilihan: ${courier}`,
+    ]
+  : []),
       `Pembayaran: ${
         payment === "transfer"
           ? "Transfer bank manual"
@@ -88,7 +97,9 @@ export default function CheckoutPage() {
       "",
       `Total barang: ${totalQuantity}`,
       `Subtotal produk: ${formatPrice(total)}`,
-      "Ongkir: Menunggu konfirmasi admin",
+      shipping === "delivery"
+  ? "Ongkir: Menunggu konfirmasi admin"
+  : "Ongkir: Tidak berlaku (ambil langsung)",
       "",
       "Mohon konfirmasi stok, ongkir, dan instruksi pembayaran. Terima kasih.",
     ].join("\n");
@@ -188,7 +199,7 @@ export default function CheckoutPage() {
                 className="w-full rounded-xl border bg-white px-4 py-3"
               >
                 <option value="delivery">Dikirim ke alamat</option>
-                <option value="pickup">Ambil langsung (jika tersedia)</option>
+                <option value="pickup">Ambil langsung di Toko</option>
               </select>
             </div>
 
@@ -213,6 +224,38 @@ export default function CheckoutPage() {
               </div>
             )}
 
+
+{shipping === "delivery" && (
+  <div>
+    <label
+      htmlFor="courier"
+      className="mb-1 block text-sm font-medium"
+    >
+      Pilih ekspedisi
+    </label>
+
+    <select
+      id="courier"
+      required
+      value={courier}
+      onChange={(event) => setCourier(event.target.value)}
+      className="w-full rounded-xl border bg-white px-4 py-3"
+    >
+      <option value="">Pilih ekspedisi pengiriman</option>
+      <option value="JNE">JNE</option>
+      <option value="J&T Express">J&T Express</option>
+      <option value="SiCepat">SiCepat</option>
+      <option value="Anteraja">Anteraja</option>
+      <option value="Pos Indonesia">Pos Indonesia</option>
+      <option value="Lainnya">Ekspedisi lainnya</option>
+    </select>
+
+    <p className="mt-2 text-xs text-slate-500">
+      Ongkos kirim dan ketersediaan layanan
+      akan dikonfirmasi admin melalui WhatsApp.
+    </p>
+  </div>
+)}
             <div>
               <label
                 htmlFor="payment"
